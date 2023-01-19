@@ -1,26 +1,88 @@
-import { createRouter, createWebHistory } from "vue-router";
-import HomeView from "../views/HomeView.vue";
+import {
+  createRouter,
+  createWebHistory
+} from "vue-router";
+import routes from './routers'
+import store from '@/store';
+import usePermission from '@/hooks/permission'
 
-const routes = [
-  {
-    path: "/",
-    name: "home",
-    component: HomeView,
-  },
-  {
-    path: "/about",
-    name: "about",
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () =>
-      import(/* webpackChunkName: "about" */ "../views/AboutView.vue"),
-  },
-];
 
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes,
+});
+
+router.beforeEach(async (to, from, next) => {
+
+  const userstore = store.state.userstore;
+
+  //用户权限判断
+  async function crossroads() {
+    const Permission = usePermission();
+    if (Permission.accessRouter(to)) await next();
+    else {
+      // 前往首个有权限的页面或者404。                
+      await next('/notfound');
+    }
+  }
+
+  function isLogin() {
+
+    //判断当前页面是否需要登录
+    if (!to.meta?.requiresAuth) {
+      next();
+    } else {
+
+      //判断当前状态管理用户是否已经登录过
+       
+      if (userstore.loginStatus) {
+        return true;
+      } else {
+        //获取本地token
+        let token = document.cookie;
+        
+        if (token) {
+          return true;
+        }else{
+          return false;
+        }
+
+      }
+    }
+  }
+
+  if (isLogin()) { // 判读用户是否登录
+    if (userstore.userinfo.role) { // 有角色信息表示当前用户已经登录且获取过用户信息
+      crossroads();
+    } else {
+      try {
+        await store.dispatch("userstore/getUserInfo", {}); // 获取用户角色信息后再进行后续跳转处理
+        crossroads();
+      } catch (error) {
+        next({
+          name: 'login',
+          query: {
+            redirect: to.name,
+            ...to.query
+          }
+        });
+      }
+    }
+  } else {
+    // 如果未登录则重定向到登录页面
+    if (to.name === 'login') {
+      next();
+      return;
+    }
+    next({
+      name: 'login',
+      query: {
+        redirect: to.name,
+        ...to.query
+      }
+    });
+  }
+
 });
 
 export default router;

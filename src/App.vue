@@ -1,29 +1,76 @@
 <template>
-  <nav>
-    <router-link to="/">Home</router-link> |
-    <router-link to="/about">About</router-link>
-  </nav>
-  <router-view />
+  <div class="common-layout">
+    <el-container>
+      <el-aside>
+        <Aside :navData="navData" />
+      </el-aside>
+      <el-container>
+        <el-header>
+          <Header />
+        </el-header>
+        <el-main>
+          <div class="main-wrapper">
+            <!-- <el-skeleton :rows="10" animated /> -->
+            <router-view></router-view>
+          </div>
+        </el-main>
+      </el-container>
+    </el-container>
+  </div>
 </template>
 
+<script>
+import Aside from "@/components/Aside/";
+import { computed } from "@vue/runtime-core";
+import store from "@/store/index";
+
+export default {
+  name: "App",
+  components: {
+    Aside,
+  },
+  setup() {
+    const userstore = store.state.userstore;
+
+    const navData = computed(() => {
+      if (userstore.userinfo.role == 3) {
+        return require("@/menus/stumenu.json");
+      } else if (userstore.userinfo.role == 1) {
+        return require("@/menus/adminmenu.json");
+      }
+    });
+
+    return {
+      navData,
+    };
+  },
+};
+</script>
+
 <style lang="scss">
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-}
+@import "@/assets/scss/common.scss";
+@import "@/assets/font/chillax/css/chillax.css";
+.common-layout {
+  & .el-container {
+    min-height: 100vh;
 
-nav {
-  padding: 30px;
+    & .el-aside {
+      width: auto;
+    }
 
-  a {
-    font-weight: bold;
-    color: #2c3e50;
+    & .el-container {
+      & .el-header {
+        height: 5vh;
+        padding: 0;
+      }
 
-    &.router-link-exact-active {
-      color: #42b983;
+      .el-main {
+        overflow: auto;
+        background-color: $bc2;
+
+        & .main-wrapper {
+        }
+      }
     }
   }
 }
